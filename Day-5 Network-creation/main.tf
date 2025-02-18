@@ -9,13 +9,34 @@ resource "aws_vpc" "custom-network" {
 resource "aws_subnet" "custom-network" {
     vpc_id =aws_vpc.custom-network.id
     cidr_block ="10.0.2.0/24"
-    #availability_zone = "ap-south-1a"
+
     tags = {
       Name= "subnet1"
     }
 
   
 }
+resource "aws_subnet" "main" {
+  vpc_id     = aws_vpc.custom-network.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "subneto2p"
+  }
+}
+# Create an Elastic IP for the NAT Gateway
+resource "aws_eip" "nat_eip" {
+  domain = "vpc"
+}
+resource "aws_nat_gateway" "nat_gw" {
+  allocation_id = aws_eip.nat_eip.id
+  subnet_id     = aws_subnet.main.id
+
+  tags = {
+    Name = "NATGateway"
+  }
+}
+
 resource "aws_internet_gateway" "custom-network" {
     vpc_id = aws_vpc.custom-network.id
     tags = {
@@ -23,6 +44,8 @@ resource "aws_internet_gateway" "custom-network" {
     }
   
 }
+
+
 resource "aws_route_table" "custom-network" {
     vpc_id = aws_vpc.custom-network.id
     route {
@@ -34,10 +57,29 @@ resource "aws_route_table" "custom-network" {
       Name="publicrt"
     }
 }
+# Create a Route Table for the Private Subnet
+resource "aws_route_table" "private_rt" {
+  vpc_id = aws_vpc.custom-network.id
+
+  route {
+    cidr_block     = "0.0.0.0/0"
+    nat_gateway_id = aws_nat_gateway.nat_gw.id
+  }
+
+  tags = {
+    Name = "PrivateRouteTable"
+  }
+}
+
+
 resource "aws_route_table_association" "custom-network" {
     subnet_id = aws_subnet.custom-network.id
     route_table_id = aws_route_table.custom-network.id
   
+}
+resource "aws_route_table_association" "dev" {
+  subnet_id = aws_subnet.main.id
+  route_table_id = aws_route_table.private_rt.id
 }
 resource "aws_security_group" "dev" {
   name        = "allow_tls"
