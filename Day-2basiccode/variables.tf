@@ -6,12 +6,12 @@ variable "ami" {
 variable "instance_type" {
     description = "value"
     type = string
-    default = "t2.micro"
+    default = ""
   
 }
 variable "key_name" {
     description = "value"
     type = string
-    default = "keypair"
+    default = ""
   
 }
